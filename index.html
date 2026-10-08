@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C2127">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ironlog">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<title>Ironlog</title>
+<style>
+:root {
+  color-scheme: dark;
+  --iron: #1C2127; --steel: #262D35; --steel-2: #323B46; --line: #3A4450;
+  --chalk: #ECE8E1; --mute: #8E98A4;
+  --blue: #2F6FD6; --red: #D8423A; --yellow: #E9B83C; --green: #3FA36B;
+  --cond: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --body: 'Barlow', system-ui, -apple-system, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--iron); color: var(--chalk); }
+body {
+  font: 16px/1.45 var(--body);
+  padding: env(safe-area-inset-top) 0 calc(76px + env(safe-area-inset-bottom));
+  -webkit-font-smoothing: antialiased;
+}
+main { max-width: 560px; margin: 0 auto; padding: 20px 20px 0; }
+[hidden] { display: none !important; }
+h1, h2 { font-family: var(--cond); font-weight: 600; margin: 0; }
+h1 { font-size: 34px; line-height: 1.1; }
+h2 { font-size: 22px; margin: 32px 0 12px; }
+p { margin: 0; }
+:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+
+label { display: block; font-size: 14px; color: var(--mute); margin-bottom: 14px; }
+input {
+  display: block; width: 100%; margin-top: 6px; padding: 12px 14px;
+  font: 500 17px var(--body); color: var(--chalk);
+  background: var(--steel); border: 1px solid var(--line); border-radius: 10px;
+}
+input:focus { border-color: var(--blue); outline: none; }
+input[type="date"] { min-height: 48px; }
+.row { display: flex; gap: 12px; }
+.row .grow { flex: 1; }
+button { font: inherit; cursor: pointer; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.primary {
+  width: 100%; padding: 14px; border: 0; border-radius: 12px;
+  background: var(--blue); color: #fff; font: 600 19px var(--cond); letter-spacing: .02em;
+}
+.secondary {
+  width: 100%; padding: 13px; border-radius: 12px; background: transparent;
+  border: 1px solid var(--line); color: var(--chalk); font-weight: 500;
+}
+.link { background: none; border: 0; color: var(--blue); padding: 8px 0; font-weight: 500; }
+.msg { min-height: 1.4em; margin-top: 10px; font-size: 14px; color: var(--green); }
+.msg.err { color: #F0857F; }
+.banner {
+  position: sticky; top: 0; z-index: 5; padding: 10px 20px; text-align: center;
+  background: var(--yellow); color: #1C2127; font-weight: 600; font-size: 14px;
+}
+
+/* auth + setup */
+.gate { min-height: 80vh; display: flex; flex-direction: column; justify-content: center; }
+.brand { font-family: var(--cond); font-weight: 700; font-size: 64px; line-height: .9; letter-spacing: -.01em; }
+.lede { color: var(--mute); margin: 10px 0 32px; }
+.gate code { background: var(--steel); padding: 2px 6px; border-radius: 6px; font-size: 14px; }
+
+/* weight hero: the one loud element */
+.hero { padding-top: 4px; }
+.greet { color: var(--mute); font-weight: 500; }
+.hero-row { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }
+.hero-num {
+  font: 600 104px/0.88 var(--cond); letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+.hero-unit { font: 500 28px var(--cond); color: var(--mute); }
+.hero-meta { color: var(--mute); font-size: 14px; margin-top: 10px; }
+.deltas { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 15px; }
+.delta b { font-family: var(--cond); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.delta.down b { color: var(--green); }
+.delta.up b { color: var(--yellow); }
+
+/* chart */
+.ranges { display: flex; gap: 4px; margin: 28px 0 8px; }
+.ranges button {
+  flex: 1; padding: 7px 0; border: 0; border-radius: 8px;
+  background: transparent; color: var(--mute); font: 600 16px var(--cond);
+}
+.ranges button.on { background: var(--steel-2); color: var(--chalk); }
+#chart { display: block; width: 100%; height: auto; }
+#chart .grid { stroke: var(--line); stroke-width: 1; }
+#chart .axis { fill: var(--mute); font: 500 11px var(--body); }
+#chart .raw { fill: none; stroke: var(--blue); stroke-width: 1.2; opacity: .45; }
+#chart .dot { fill: var(--blue); }
+#chart .trend { fill: none; stroke: var(--yellow); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+#chart .empty { fill: var(--mute); font: 500 14px var(--body); }
+.legend { display: flex; gap: 18px; font-size: 13px; color: var(--mute); margin-top: 6px; }
+.key { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.key.raw { background: var(--blue); }
+.key.trend { background: var(--yellow); }
+
+/* history */
+.history { list-style: none; margin: 0; padding: 0; }
+.history li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.history li:last-child { border-bottom: 0; }
+.h-main { flex: 1; text-align: left; background: none; border: 0; color: inherit; padding: 0; display: flex; align-items: center; gap: 12px; }
+.h-text { flex: 1; min-width: 0; }
+.h-date { display: block; font-weight: 500; }
+.h-note { display: block; color: var(--mute); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-val { font: 600 22px var(--cond); font-variant-numeric: tabular-nums; }
+.del { background: none; border: 0; color: var(--mute); padding: 6px; font-size: 14px; }
+.del:hover { color: var(--red); }
+.empty-row { color: var(--mute); }
+
+/* settings */
+.seg { border: 0; padding: 0; margin: 0 0 20px; }
+.seg legend { font-size: 14px; color: var(--mute); margin-bottom: 6px; padding: 0; }
+.seg-wrap { display: flex; background: var(--steel); border-radius: 12px; padding: 4px; }
+.seg button {
+  flex: 1; padding: 10px; border: 0; border-radius: 9px; background: transparent;
+  color: var(--mute); font: 600 18px var(--cond);
+}
+.seg button[aria-pressed="true"] { background: var(--blue); color: #fff; }
+.account { color: var(--mute); font-size: 14px; margin: 28px 0 12px; }
+.stack > * + * { margin-top: 10px; }
+.danger-link { background: none; border: 0; color: #F0857F; padding: 12px 0; font-weight: 500; }
+
+/* tab bar */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; display: flex;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+  background: var(--steel); border-top: 1px solid var(--line);
+}
+.tabbar button {
+  flex: 1; background: none; border: 0; color: var(--mute); padding: 6px 0;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; font-weight: 500;
+}
+.tabbar button svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.tabbar button[aria-current="page"] { color: var(--blue); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-num { transition: opacity .2s; }
+}
+</style>
+</head>
+<body>
+<div id="offline" class="banner" hidden>Offline. You can view your last synced data, but saving needs a connection.</div>
+
+<main>
+  <section id="setup-view" class="gate" hidden>
+    <p class="brand">Ironlog</p>
+    <p class="lede">Almost there. Add your Supabase project URL and key near the top of the script in <code>index.html</code>, then reload. The README walks through it.</p>
+  </section>
+
+  <section id="auth-view" class="gate" hidden>
+    <p class="brand">Ironlog</p>
+    <p class="lede">Your training log, synced across every device.</p>
+    <form id="auth-form" novalidate>
+      <label id="name-field" hidden>Name<input id="auth-name" autocomplete="given-name" maxlength="60"></label>
+      <label>Email<input id="auth-email" type="email" autocomplete="email" required></label>
+      <label>Password<input id="auth-pass" type="password" autocomplete="current-password" minlength="8" required></label>
+      <button class="primary" id="auth-submit">Sign in</button>
+      <p id="auth-msg" class="msg" role="status"></p>
+    </form>
+    <button class="link" id="auth-toggle" type="button">New here? Create an account</button>
+  </section>
+
+  <section id="app-view" hidden>
+    <div id="tab-weight">
+      <header class="hero">
+        <p class="greet" id="greet"></p>
+        <div class="hero-row"><span class="hero-num" id="latest">--</span><span class="hero-unit" id="latest-unit"></span></div>
+        <p class="hero-meta" id="latest-meta"></p>
+        <div class="deltas" id="deltas"></div>
+      </header>
+
+      <div class="ranges" role="group" aria-label="Chart range">
+        <button type="button" data-range="1M">1M</button>
+        <button type="button" data-range="3M" class="on">3M</button>
+        <button type="button" data-range="1Y">1Y</button>
+        <button type="button" data-range="ALL">All</button>
+      </div>
+      <svg id="chart" viewBox="0 0 340 180" role="img" aria-label="Bodyweight over time"></svg>
+      <div class="legend"><span><span class="key raw"></span>Weigh-ins</span><span><span class="key trend"></span>7-day average</span></div>
+
+      <form id="weigh-form" novalidate>
+        <h2>Log weight</h2>
+        <div class="row">
+          <label class="grow">Weight (<span class="u-label">lb</span>)<input id="w-val" inputmode="decimal" autocomplete="off" required></label>
+          <label class="grow">Date<input id="w-date" type="date" required></label>
+        </div>
+        <label>Note<input id="w-note" maxlength="200" placeholder="Optional, like after travel"></label>
+        <button class="primary" id="w-save">Save weigh-in</button>
+        <p id="w-msg" class="msg" role="status"></p>
+      </form>
+
+      <h2>History</h2>
+      <ul id="history" class="history"></ul>
+    </div>
+
+    <div id="tab-settings" hidden>
+      <h1>Settings</h1>
+      <form id="settings-form" novalidate style="margin-top:24px">
+        <label>Name<input id="s-name" maxlength="60" autocomplete="given-name"></label>
+        <fieldset class="seg">
+          <legend>Units</legend>
+          <div class="seg-wrap">
+            <button type="button" data-unit="imperial" aria-pressed="true">lb</button>
+            <button type="button" data-unit="metric" aria-pressed="false">kg</button>
+          </div>
+        </fieldset>
+        <button class="primary">Save name</button>
+        <p id="s-msg" class="msg" role="status"></p>
+      </form>
+      <p class="account">Signed in as <span id="s-email"></span></p>
+      <div class="stack">
+        <button class="secondary" id="export" type="button">Export my data (JSON)</button>
+        <button class="danger-link" id="signout" type="button">Sign out</button>
+      </div>
+    </div>
+
+    <nav class="tabbar" aria-label="Sections">
+      <button type="button" data-tab="weight" aria-current="page">
+        <svg viewBox="0 0 24 24"><path d="M4 19h16M6 15l4-4 3 3 5-6"/></svg>Weight
+      </button>
+      <button type="button" data-tab="settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Settings
+      </button>
+    </nav>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+// Paste from Supabase: Project URL and the publishable (or legacy anon) key.
+// These are safe to ship in the browser; row level security protects the data.
+// Never put the secret / service_role key here.
+const SUPABASE_URL = 'https://cxmufmrljbfcskdvxffk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_3V5mJKZ49Wk9BeUzwubN1A_VLKK8M7x';
+
+const KG_PER_LB = 0.45359237;
+const DAY = 86400000;
+const RANGES = { '1M': 30, '3M': 91, '1Y': 365, 'ALL': Infinity };
+const configured = !SUPABASE_URL.includes('YOUR-') && !SUPABASE_KEY.includes('YOUR-');
+const sb = configured ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const state = { session: null, profile: null, entries: [], range: '3M', authMode: 'signin', loadedFor: null };
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const unit = () => state.profile?.unit_system === 'metric' ? 'kg' : 'lb';
+const toDisplay = kg => unit() === 'kg' ? kg : kg / KG_PER_LB;
+const toKg = v => unit() === 'kg' ? v : v * KG_PER_LB;
+const fmt = n => n.toFixed(1);
+const signed = n => (n > 0.05 ? '+' : n < -0.05 ? '\u2212' : '\u00b1') + fmt(Math.abs(n));
+const localISO = (d = new Date()) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const dayMs = s => new Date(s + 'T00:00:00').getTime();
+const shortDate = s => new Date(s + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+const longDate = s => new Date(s + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+const uid = () => state.session.user.id;
+const cacheKey = () => 'ironlog:cache:' + uid();
+const sortEntries = list => list.sort((a, b) => a.logged_on < b.logged_on ? -1 : 1);
+
+function msg(el, text, isError = false) { el.textContent = text; el.classList.toggle('err', isError); }
+function show(id) { for (const v of ['setup-view', 'auth-view', 'app-view']) $('#' + v).hidden = v !== id; }
+function persistCache() {
+  try { localStorage.setItem(cacheKey(), JSON.stringify({ profile: state.profile, entries: state.entries })); } catch {}
+}
+
+/* ---------- auth ---------- */
+function setAuthMode(mode) {
+  state.authMode = mode;
+  const signup = mode === 'signup';
+  $('#name-field').hidden = !signup;
+  $('#auth-submit').textContent = signup ? 'Create account' : 'Sign in';
+  $('#auth-toggle').textContent = signup ? 'Have an account? Sign in' : 'New here? Create an account';
+  $('#auth-pass').autocomplete = signup ? 'new-password' : 'current-password';
+  msg($('#auth-msg'), '');
+}
+$('#auth-toggle').onclick = () => setAuthMode(state.authMode === 'signin' ? 'signup' : 'signin');
+
+$('#auth-form').onsubmit = async ev => {
+  ev.preventDefault();
+  const m = $('#auth-msg'), btn = $('#auth-submit');
+  const email = $('#auth-email').value.trim(), password = $('#auth-pass').value;
+  if (!email.includes('@')) return msg(m, 'Enter a valid email address.', true);
+  if (password.length < 8) return msg(m, 'Password needs at least 8 characters.', true);
+  btn.disabled = true;
+  let res;
+  if (state.authMode === 'signup') {
+    res = await sb.auth.signUp({
+      email, password,
+      options: { data: { display_name: $('#auth-name').value.trim() }, emailRedirectTo: location.origin + location.pathname }
+    });
+  } else {
+    res = await sb.auth.signInWithPassword({ email, password });
+  }
+  btn.disabled = false;
+  if (res.error) return msg(m, res.error.message, true);
+  if (state.authMode === 'signup' && !res.data.session) {
+    setAuthMode('signin');
+    msg(m, 'Account created. Confirm it from the email we sent, then sign in here.');
+  }
+};
+
+async function route() {
+  if (!state.session) { state.loadedFor = null; show('auth-view'); return; }
+  show('app-view');
+  if (state.loadedFor !== uid()) { state.loadedFor = uid(); await loadAll(); }
+}
+
+/* ---------- data ---------- */
+async function loadAll() {
+  const [p, w] = await Promise.all([
+    sb.from('profiles').select('display_name, unit_system').eq('id', uid()).maybeSingle(),
+    sb.from('weigh_ins').select('id, logged_on, weight_kg, note').order('logged_on', { ascending: true })
+  ]);
+  if (p.error || w.error) {
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem(cacheKey()) || 'null'); } catch {}
+    if (cached) { state.profile = cached.profile; state.entries = cached.entries; }
+    msg($('#w-msg'), cached ? 'Showing your last synced data. Check your connection.' : 'Could not load your data: ' + (p.error || w.error).message, true);
+    state.loadedFor = null; // retry on next route or when back online
+  } else {
+    state.profile = p.data || { display_name: state.session.user.user_metadata?.display_name || '', unit_system: 'imperial' };
+    state.entries = w.data.map(e => ({ ...e, weight_kg: Number(e.weight_kg) }));
+    persistCache();
+  }
+  renderAll();
+}
+
+/* ---------- rendering ---------- */
+function renderAll() {
+  $$('.u-label').forEach(el => el.textContent = unit());
+  renderHero(); renderChart(); renderHistory(); renderSettings(); syncSaveLabel();
+}
+
+function renderHero() {
+  const name = state.profile?.display_name?.trim();
+  const h = new Date().getHours();
+  $('#greet').textContent = (h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening') + (name ? ', ' + name : '');
+  $('#latest-unit').textContent = unit();
+  const e = state.entries, last = e[e.length - 1];
+  if (!last) {
+    $('#latest').textContent = '--';
+    $('#latest-meta').textContent = 'No weigh-ins yet. Log your first one below.';
+    $('#deltas').innerHTML = '';
+    return;
+  }
+  $('#latest').textContent = fmt(toDisplay(last.weight_kg));
+  $('#latest-meta').textContent = 'Last weigh-in ' + longDate(last.logged_on);
+  const seen = new Set(), out = [];
+  for (const days of [7, 30]) {
+    const target = dayMs(last.logged_on) - days * DAY;
+    const ref = [...e].reverse().find(x => dayMs(x.logged_on) <= target);
+    if (!ref || seen.has(ref.logged_on)) continue;
+    seen.add(ref.logged_on);
+    const diff = toDisplay(last.weight_kg) - toDisplay(ref.weight_kg);
+    const cls = diff < -0.05 ? 'down' : diff > 0.05 ? 'up' : '';
+    out.push(`<span class="delta ${cls}"><b>${signed(diff)}</b> ${unit()} since ${shortDate(ref.logged_on)}</span>`);
+  }
+  $('#deltas').innerHTML = out.join('');
+}
+
+// Trailing 7-day average ending at entry i
+function trendAt(i, all) {
+  const t = dayMs(all[i].logged_on);
+  let sum = 0, n = 0;
+  for (let j = i; j >= 0; j--) {
+    if (t - dayMs(all[j].logged_on) > 6 * DAY) break;
+    sum += all[j].weight_kg; n++;
+  }
+  return sum / n;
+}
+
+function renderChart() {
+  const svg = $('#chart'), W = 340, H = 180, L = 40, R = 8, T = 10, B = 22;
+  const all = state.entries, last = all[all.length - 1];
+  const cutoff = last ? dayMs(last.logged_on) - RANGES[state.range] * DAY : 0;
+  const idx = all.map((_, i) => i).filter(i => dayMs(all[i].logged_on) >= cutoff);
+  if (idx.length < 2) {
+    const text = all.length < 2 ? 'Log two weigh-ins to see your trend' : 'Not enough weigh-ins in this range';
+    svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" text-anchor="middle" class="empty">${text}</text>`;
+    return;
+  }
+  const pts = idx.map(i => ({ d: all[i].logged_on, t: dayMs(all[i].logged_on), v: toDisplay(all[i].weight_kg), a: toDisplay(trendAt(i, all)) }));
+  const x0 = pts[0].t, x1 = pts[pts.length - 1].t;
+  const vals = pts.flatMap(p => [p.v, p.a]);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = Math.max((hi - lo) * 0.15, 0.5);
+  lo -= pad; hi += pad;
+  const X = t => L + (t - x0) / (x1 - x0) * (W - L - R);
+  const Y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+  const path = key => pts.map((p, i) => (i ? 'L' : 'M') + X(p.t).toFixed(1) + ' ' + Y(p[key]).toFixed(1)).join(' ');
+  const grid = [hi - pad, (hi + lo) / 2, lo + pad].map(v =>
+    `<line x1="${L}" x2="${W - R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" class="grid"/>` +
+    `<text x="${L - 6}" y="${(Y(v) + 4).toFixed(1)}" text-anchor="end" class="axis">${fmt(v)}</text>`).join('');
+  const dots = pts.length <= 120 ? pts.map(p => `<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="2.4" class="dot"/>`).join('') : '';
+  svg.innerHTML = grid +
+    `<path d="${path('v')}" class="raw"/>` + dots +
+    `<path d="${path('a')}" class="trend"/>` +
+    `<text x="${L}" y="${H - 5}" class="axis">${shortDate(pts[0].d)}</text>` +
+    `<text x="${W - R}" y="${H - 5}" text-anchor="end" class="axis">${shortDate(pts[pts.length - 1].d)}</text>`;
+}
+
+function renderHistory() {
+  const ul = $('#history');
+  ul.innerHTML = '';
+  if (!state.entries.length) { ul.innerHTML = '<li class="empty-row">Your weigh-ins will show up here.</li>'; return; }
+  for (const e of [...state.entries].reverse()) {
+    const li = document.createElement('li');
+    li.innerHTML = `<button type="button" class="h-main"><span class="h-text"><span class="h-date"></span><span class="h-note"></span></span><span class="h-val"></span></button><button type="button" class="del">Delete</button>`;
+    li.querySelector('.h-date').textContent = longDate(e.logged_on);
+    li.querySelector('.h-note').textContent = e.note || '';
+    li.querySelector('.h-val').textContent = fmt(toDisplay(e.weight_kg));
+    li.querySelector('.h-main').setAttribute('aria-label', `Edit weigh-in from ${longDate(e.logged_on)}`);
+    li.querySelector('.del').setAttribute('aria-label', `Delete weigh-in from ${longDate(e.logged_on)}`);
+    li.querySelector('.h-main').onclick = () => loadIntoForm(e);
+    li.querySelector('.del').onclick = () => deleteEntry(e);
+    ul.appendChild(li);
+  }
+}
+
+function renderSettings() {
+  if (document.activeElement !== $('#s-name')) $('#s-name').value = state.profile?.display_name || '';
+  $('#s-email').textContent = state.session?.user.email || '';
+  $$('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.unit === (state.profile?.unit_system || 'imperial'))));
+}
+
+/* ---------- weigh-in form ---------- */
+function syncSaveLabel() {
+  const exists = state.entries.some(e => e.logged_on === $('#w-date').value);
+  $('#w-save').textContent = exists ? 'Update weigh-in' : 'Save weigh-in';
+}
+function loadIntoForm(e) {
+  $('#w-val').value = fmt(toDisplay(e.weight_kg));
+  $('#w-date').value = e.logged_on;
+  $('#w-note').value = e.note || '';
+  syncSaveLabel();
+  $('#weigh-form').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  $('#w-val').focus({ preventScroll: true });
+}
+$('#w-date').value = localISO();
+$('#w-date').max = localISO();
+$('#w-date').oninput = syncSaveLabel;
+
+$('#weigh-form').onsubmit = async ev => {
+  ev.preventDefault();
+  const m = $('#w-msg'), btn = $('#w-save');
+  const raw = parseFloat($('#w-val').value.replace(',', '.'));
+  const date = $('#w-date').value;
+  if (!Number.isFinite(raw)) return msg(m, 'Enter your weight as a number, like 221.8.', true);
+  const kg = Math.round(toKg(raw) * 100) / 100;
+  if (kg < 20 || kg > 400) return msg(m, `Weight must be between ${fmt(toDisplay(20))} and ${fmt(toDisplay(400))} ${unit()}.`, true);
+  if (!date || date > localISO()) return msg(m, 'Pick today or an earlier date.', true);
+  btn.disabled = true;
+  const { data, error } = await sb.from('weigh_ins')
+    .upsert({ user_id: uid(), logged_on: date, weight_kg: kg, note: $('#w-note').value.trim() || null }, { onConflict: 'user_id,logged_on' })
+    .select('id, logged_on, weight_kg, note').single();
+  btn.disabled = !navigator.onLine;
+  if (error) return msg(m, 'Could not save: ' + error.message, true);
+  const row = { ...data, weight_kg: Number(data.weight_kg) };
+  state.entries = sortEntries(state.entries.filter(e => e.logged_on !== row.logged_on).concat(row));
+  persistCache();
+  $('#w-val').value = ''; $('#w-note').value = ''; $('#w-date').value = localISO();
+  renderAll();
+  msg(m, 'Saved weigh-in for ' + longDate(row.logged_on) + '.');
+};
+
+async function deleteEntry(e) {
+  if (!confirm(`Delete the weigh-in from ${longDate(e.logged_on)}?`)) return;
+  const { error } = await sb.from('weigh_ins').delete().eq('id', e.id);
+  if (error) return msg($('#w-msg'), 'Could not delete: ' + error.message, true);
+  state.entries = state.entries.filter(x => x.id !== e.id);
+  persistCache(); renderAll();
+  msg($('#w-msg'), 'Deleted weigh-in from ' + longDate(e.logged_on) + '.');
+}
+
+/* ---------- chart range ---------- */
+$$('.ranges button').forEach(b => b.onclick = () => {
+  state.range = b.dataset.range;
+  $$('.ranges button').forEach(x => x.classList.toggle('on', x === b));
+  renderChart();
+});
+
+/* ---------- settings ---------- */
+async function saveProfile(patch, m) {
+  const next = { display_name: state.profile?.display_name ?? null, unit_system: state.profile?.unit_system || 'imperial', ...patch };
+  const { error } = await sb.from('profiles').upsert({ id: uid(), ...next });
+  if (error) { msg(m, 'Could not save settings: ' + error.message, true); return false; }
+  state.profile = next; persistCache(); renderAll();
+  return true;
+}
+$$('.seg button').forEach(b => b.onclick = async () => {
+  if ((state.profile?.unit_system || 'imperial') === b.dataset.unit) return;
+  if (await saveProfile({ unit_system: b.dataset.unit }, $('#s-msg'))) msg($('#s-msg'), 'Units set to ' + unit() + '.');
+});
+$('#settings-form').onsubmit = async ev => {
+  ev.preventDefault();
+  const name = $('#s-name').value.trim() || null;
+  if (await saveProfile({ display_name: name }, $('#s-msg'))) msg($('#s-msg'), 'Name saved.');
+};
+$('#export').onclick = () => {
+  const payload = { exported_at: new Date().toISOString(), storage_unit: 'kg', profile: state.profile, weigh_ins: state.entries };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+  a.download = `ironlog-export-${localISO()}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('#signout').onclick = async () => {
+  try { localStorage.removeItem(cacheKey()); } catch {}
+  await sb.auth.signOut();
+};
+
+/* ---------- tabs ---------- */
+$$('.tabbar button').forEach(b => b.onclick = () => {
+  for (const t of ['weight', 'settings']) $('#tab-' + t).hidden = t !== b.dataset.tab;
+  $$('.tabbar button').forEach(x => x === b ? x.setAttribute('aria-current', 'page') : x.removeAttribute('aria-current'));
+  scrollTo(0, 0);
+});
+
+/* ---------- connectivity + boot ---------- */
+function net() {
+  $('#offline').hidden = navigator.onLine;
+  $('#w-save').disabled = !navigator.onLine;
+  if (navigator.onLine && state.session && state.loadedFor === null) route();
+}
+addEventListener('online', net);
+addEventListener('offline', net);
+net();
+
+if (!configured) {
+  show('setup-view');
+} else {
+  sb.auth.onAuthStateChange((_event, session) => {
+    state.session = session;
+    setTimeout(route, 0); // never await Supabase calls inside this callback
+  });
+}
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+</script>
+</body>
+</html>
